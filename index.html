@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Top Lads Golf Group — Play Beyond The Ordinary</title>
+<meta name="description" content="Premium golf experiences, events and community. Top Lads Golf Group." />
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600&family=Big+Shoulders+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="styles.css" />
+<link rel="icon" type="image/png" href="TopLads Logo 2026 w.png" />
+</head>
+<body>
+
+<!-- Top corners — logo + CTA -->
+<a href="#hero" class="corner-logo">
+  <img src="TopLads Logo 2026 w.png" alt="Top Lads Golf Group" />
+</a>
+<a href="#membership" class="corner-cta">
+  <span>Join The Lads</span>
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+</a>
+
+<!-- Vertical SIDE NAV — SVG wavy putt-line that the golf ball rolls down -->
+<nav class="side-nav" aria-label="Sections">
+  <svg class="sn-svg" viewBox="0 0 80 700" preserveAspectRatio="none" aria-hidden="true">
+    <defs>
+      <linearGradient id="snGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="#1E9CD7"/>
+        <stop offset="100%" stop-color="#EC4899"/>
+      </linearGradient>
+      <filter id="snGlow" x="-50%" y="-50%" width="200%" height="200%">
+        <feGaussianBlur stdDeviation="3" result="b"/>
+        <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+    </defs>
+    <!-- Invisible reference path (used by JS for ball + marker positioning) -->
+    <path id="snPathBg"
+          d="M 40 8
+             C 78 130, 6 260, 40 380
+             C 74 470, 8 600, 40 692"
+          fill="none"
+          stroke="none" />
+    <!-- Gradient-filled path that grows with scroll -->
+    <path id="snPathFill"
+          d="M 40 8
+             C 78 130, 6 260, 40 380
+             C 74 470, 8 600, 40 692"
+          fill="none"
+          stroke="url(#snGrad)"
+          stroke-width="2.5"
+          stroke-linecap="round"
+          filter="url(#snGlow)" />
+    <!-- Section markers placed at path % via JS -->
+    <g id="snMarkerGroup"></g>
+    <!-- Tiny "pin/hole" at the end of the path -->
+    <circle cx="40" cy="692" r="4" fill="#fff" opacity="0.85"/>
+    <circle cx="40" cy="692" r="9" fill="none" stroke="#fff" stroke-width="1" opacity="0.25"/>
+  </svg>
+
+  <!-- Drop shadow — sibling of the ball so rotation doesn't affect it -->
+  <div class="ball-shadow" id="ballShadow"></div>
+
+  <!-- Golf ball — HTML so we get CSS dimples + specular -->
+  <div class="golf-ball" id="golfBall">
+    <span class="gb-shine"></span>
+  </div>
+
+  <!-- Flag that pops out of the ball at 100% scroll -->
+  <div class="ball-flag" id="ballFlag" aria-hidden="true">
+    <div class="bf-stage">
+      <span class="bf-pole"></span>
+      <span class="bf-flag"></span>
+    </div>
+  </div>
+
+  <!-- Hover labels (positioned by JS to match markers) -->
+  <ul class="sn-labels" id="snLabels">
+    <li data-target="#hero"><span class="label">Tee</span></li>
+    <li data-target="#scrub"><span class="label">Experience</span></li>
+    <li data-target="#events"><span class="label">Events</span></li>
+    <li data-target="#membership"><span class="label">Membership</span></li>
+    <li data-target="#sponsors"><span class="label">Partners</span></li>
+    <li data-target="#contact"><span class="label">Contact</span></li>
+  </ul>
+</nav>
+
+<!-- Fixed scrub stage — pure image sequence, no video element -->
+<div class="video-stage" id="videoStage">
+  <div class="video-wrap">
+    <canvas id="scrubCanvas"></canvas>
+  </div>
+  <div class="video-vignette"></div>
+  <div class="video-tint"></div>
+</div>
+
+<!-- Preload loader -->
+<div class="preloader" id="preloader">
+  <div class="pl-inner">
+    <img src="TopLads Logo 2026 w.png" alt="" class="pl-logo"/>
+    <div class="pl-bar"><i id="plFill"></i></div>
+    <span class="pl-pct" id="plPct">00%</span>
+  </div>
+</div>
+
+<!-- ============================================================
+     SCROLL STAGE — Hero + Story are stacked inside the same wrapper.
+     User cannot escape the video until they have fully scrubbed it.
+     ============================================================ -->
+<div class="scroll-stage" id="scrollStage">
+
+  <!-- HERO -->
+  <section class="hero" id="hero">
+    <div class="hero-inner">
+      <span class="eyebrow">
+        <span class="dot"></span> Top Lads Golf Group
+      </span>
+      <h1 class="hero-title">
+        <span class="line"><span class="word">Play Beyond</span></span>
+        <span class="line"><span class="word accent-stroke">The Ordinary</span></span>
+      </h1>
+      <p class="hero-sub">Premium Golf Experiences, Events &amp; Community.</p>
+      <div class="hero-cta-row">
+        <a href="#membership" class="btn-primary">
+          <span>Join The Lads</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </a>
+      </div>
+    </div>
+    <div class="hero-scroll-cue">
+      <span>Scroll to Tee Off</span>
+      <div class="cue-line"></div>
+    </div>
+  </section>
+
+  <!-- Pure scrub area. Scroll length drives the frame sequence. -->
+  <section class="video-scrub" id="scrub"></section>
+
+  <!-- Cool scrolling text — choreographed beats over the scrub -->
+  <div class="scrub-text" aria-hidden="true">
+    <div class="sw" data-start="0.16" data-end="0.34">
+      <span class="sw-num">01 / The Stance</span>
+      <h2><span class="sw-line"><span>Focus.</span></span></h2>
+      <p>Read the wind. Read the line.</p>
+    </div>
+    <div class="sw" data-start="0.40" data-end="0.58">
+      <span class="sw-num">02 / The Strike</span>
+      <h2><span class="sw-line"><span>Unleash<em>.</em></span></span></h2>
+      <p>Power. Precision. Poetry.</p>
+    </div>
+    <div class="sw" data-start="0.62" data-end="0.78">
+      <span class="sw-num">03 / The Reveal</span>
+      <h2><span class="sw-line"><span>Beyond <em>Ordinary.</em></span></span></h2>
+      <p>This is how we play.</p>
+    </div>
+  </div>
+
+</div>
+
+<!-- ============================================================
+     CONTENT — appears after the video story ends
+     ============================================================ -->
+<main class="content">
+
+  <!-- EVENTS -->
+  <section class="section events" id="events">
+    <div class="watermark" data-parallax="-0.25">01</div>
+    <div class="section-head">
+      <span class="section-num">Calendar</span>
+      <h2 class="display-h2">Upcoming <em>Fixtures.</em></h2>
+    </div>
+    <ul class="events-list">
+      <li class="event">
+        <div class="ev-date"><span class="day">14</span><span class="mon">JUN</span></div>
+        <div class="ev-name"><h3>The Summer Classic</h3><span>36 Holes · Strokeplay</span></div>
+        <div class="ev-loc">Royal Sands, Cape Town</div>
+        <a href="#" class="ev-cta">Reserve →</a>
+      </li>
+      <li class="event">
+        <div class="ev-date"><span class="day">02</span><span class="mon">AUG</span></div>
+        <div class="ev-name"><h3>Lads vs. Legends</h3><span>Invitational · Matchplay</span></div>
+        <div class="ev-loc">Leopard Creek, Mpumalanga</div>
+        <a href="#" class="ev-cta">Reserve →</a>
+      </li>
+      <li class="event">
+        <div class="ev-date"><span class="day">21</span><span class="mon">SEP</span></div>
+        <div class="ev-name"><h3>The Members' Cup</h3><span>Black Tie · Champions Dinner</span></div>
+        <div class="ev-loc">Fancourt, Garden Route</div>
+        <a href="#" class="ev-cta">Reserve →</a>
+      </li>
+    </ul>
+  </section>
+
+  <!-- MEMBERSHIP -->
+  <section class="section membership" id="membership">
+    <div class="watermark" data-parallax="-0.25">02</div>
+    <div class="section-head">
+      <span class="section-num">Membership</span>
+      <h2 class="display-h2">By <em>Invitation.</em></h2>
+    </div>
+    <div class="tiers">
+      <article class="tier">
+        <div class="tier-tag">Signature</div>
+        <h3>The Caddie</h3>
+        <p class="tier-price">R 4,800 <span>/ yr</span></p>
+        <ul>
+          <li>Quarterly society rounds</li>
+          <li>Members' newsletter</li>
+          <li>Apparel pre-access</li>
+        </ul>
+        <a href="#contact" class="tier-cta">Apply</a>
+      </article>
+      <article class="tier featured">
+        <div class="tier-tag">Most Selected</div>
+        <h3>The Player</h3>
+        <p class="tier-price">R 12,500 <span>/ yr</span></p>
+        <ul>
+          <li>All Caddie benefits</li>
+          <li>All majors &amp; black-tie events</li>
+          <li>Private clubhouse access</li>
+        </ul>
+        <a href="#contact" class="tier-cta primary">Apply</a>
+      </article>
+      <article class="tier">
+        <div class="tier-tag">By Invitation</div>
+        <h3>The Patron</h3>
+        <p class="tier-price">Enquire</p>
+        <ul>
+          <li>Lifetime concierge</li>
+          <li>International fixtures</li>
+          <li>Patron-only gatherings</li>
+        </ul>
+        <a href="#contact" class="tier-cta">Enquire</a>
+      </article>
+    </div>
+  </section>
+
+  <!-- SPONSORS -->
+  <section class="section sponsors" id="sponsors">
+    <span class="section-num center">In Partnership</span>
+    <div class="sponsor-marquee">
+      <div class="sponsor-track">
+        <span>ROLEX</span><span>·</span><span>PORSCHE</span><span>·</span><span>MALBON</span><span>·</span><span>TITLEIST</span><span>·</span><span>CALLAWAY</span><span>·</span><span>TAYLORMADE</span><span>·</span><span>VEUVE CLICQUOT</span><span>·</span>
+        <span>ROLEX</span><span>·</span><span>PORSCHE</span><span>·</span><span>MALBON</span><span>·</span><span>TITLEIST</span><span>·</span><span>CALLAWAY</span><span>·</span><span>TAYLORMADE</span><span>·</span><span>VEUVE CLICQUOT</span><span>·</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONTACT -->
+  <section class="section contact" id="contact">
+    <div class="watermark" data-parallax="-0.25">03</div>
+    <div class="section-head">
+      <span class="section-num">Tee Off</span>
+      <h2 class="display-h2">Step Onto<br><em>The First Tee.</em></h2>
+    </div>
+    <div class="contact-grid">
+      <div class="contact-info">
+        <div class="ci-row">
+          <span class="ci-label">Concierge</span>
+          <a href="mailto:concierge@toplads.golf">concierge@toplads.golf</a>
+        </div>
+        <div class="ci-row">
+          <span class="ci-label">Clubhouse</span>
+          <span class="ci-val">Cape Town · Johannesburg</span>
+        </div>
+      </div>
+      <form class="contact-form" onsubmit="return false;">
+        <label><span>Name</span><input type="text" placeholder="Your name" /></label>
+        <label><span>Email</span><input type="email" placeholder="you@example.com" /></label>
+        <button type="button" class="btn-primary full">
+          <span>Request Invitation</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </button>
+      </form>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <img src="TopLads Logo 2026 w.png" alt="" class="footer-logo"/>
+    <p class="footer-tag">Play Beyond The Ordinary.</p>
+    <span class="footer-c">© 2026 Top Lads Golf Group</span>
+  </footer>
+
+</main>
+
+<!-- Libraries -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@studio-freight/lenis@1.0.42/dist/lenis.min.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
