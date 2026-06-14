@@ -215,11 +215,18 @@ window.addEventListener("load", () => {
    on the scrub stage. The frame canvas now fills the viewport. */
 
 /* ============================================================
-   SCROLL-DRIVEN IMAGE SEQUENCE
-   - 1920x1080 frames decoded once to ImageBitmap (GPU-friendly)
-   - rAF render loop interpolates current frame toward target,
-     so scroll feels buttery even on fast wheel input
-   - canvas drawn at device pixel ratio (capped) for crisp output
+   MOBILE / LOW-MEMORY DETECTION
+   361 ImageBitmaps × ~8MB each blows past iOS Safari's per-tab
+   memory ceiling. On mobile we swap the canvas for a regular
+   <video> element that decodes one frame at a time.
+   ============================================================ */
+const IS_MOBILE =
+  window.matchMedia("(max-width: 900px)").matches ||
+  window.matchMedia("(pointer: coarse)").matches ||
+  /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+/* ============================================================
+   SCROLL-DRIVEN IMAGE SEQUENCE (desktop only)
    ============================================================ */
 const TOTAL_FRAMES = 361;
 const FRAME_PATH   = (i) => `frames/f_${String(i).padStart(3, "0")}.jpg`;
@@ -375,24 +382,59 @@ async function preloadAllFrames() {
   const workers = Array.from({ length: CONCURRENCY }, worker);
   await Promise.all(workers);
 }
-preloadAllFrames();
+
+/* ----------------- MOBILE PATH ----------------- */
+function setupMobileVideo() {
+  // Replace the canvas with a looping <video> so iOS Safari doesn't OOM
+  const wrap = document.querySelector(".video-wrap");
+  if (canvas && canvas.parentNode === wrap) wrap.removeChild(canvas);
+
+  const v = document.createElement("video");
+  v.src = "Toplads_BG_scrub.mp4";
+  v.muted = true;
+  v.loop = true;
+  v.autoplay = true;
+  v.playsInline = true;
+  v.setAttribute("playsinline", "true");
+  v.setAttribute("webkit-playsinline", "true");
+  v.style.cssText = "width:100%;height:100%;object-fit:cover;display:block;";
+  wrap.appendChild(v);
+  v.play().catch(() => {});
+
+  // Skip the preloader immediately
+  const pl = document.getElementById("preloader");
+  if (pl) pl.classList.add("gone");
+
+  // Shorten the scroll stage so mobile users aren't trapped in an empty 400vh
+  const scrub = document.getElementById("scrub");
+  if (scrub) scrub.style.height = "150vh";
+
+  firstFrameReady = true;
+  allFramesReady  = true;
+}
+
+if (IS_MOBILE) {
+  setupMobileVideo();
+} else {
+  preloadAllFrames();
+}
 
 /* ============================================================
    Render loop — interpolates currentIdx toward targetIdx every
    frame so the scrub stays smooth even between scroll ticks.
+   Desktop only; mobile uses a plain <video> element.
    ============================================================ */
 let targetIdx  = 0;
 let currentIdx = 0;
 function renderLoop() {
-  if (firstFrameReady) {
-    // Ease toward target
+  if (firstFrameReady && !IS_MOBILE) {
     currentIdx += (targetIdx - currentIdx) * 0.25;
     const idx = Math.round(currentIdx);
     if (idx !== currentDrawnIdx) drawFrame(idx);
   }
   requestAnimationFrame(renderLoop);
 }
-requestAnimationFrame(renderLoop);
+if (!IS_MOBILE) requestAnimationFrame(renderLoop);
 
 /* Scroll → target frame + reveal arc */
 ScrollTrigger.create({
@@ -406,12 +448,14 @@ ScrollTrigger.create({
     // Target frame is set every scroll update; render loop catches up
     targetIdx = p * (TOTAL_FRAMES - 1);
 
-    /* Color reveal arc */
-    let brightness;
-    if (p < 0.55)      brightness = 0.85;
-    else if (p < 0.95) brightness = 0.85 + ((p - 0.55) / 0.40) * 0.15;
-    else               brightness = 1.0;
-    canvasEl.style.filter = `brightness(${brightness.toFixed(3)}) saturate(${(1.05 + p * 0.05).toFixed(3)})`;
+    /* Color reveal arc — desktop canvas only */
+    if (!IS_MOBILE && canvasEl) {
+      let brightness;
+      if (p < 0.55)      brightness = 0.85;
+      else if (p < 0.95) brightness = 0.85 + ((p - 0.55) / 0.40) * 0.15;
+      else               brightness = 1.0;
+      canvasEl.style.filter = `brightness(${brightness.toFixed(3)}) saturate(${(1.05 + p * 0.05).toFixed(3)})`;
+    }
 
     const vigOp = p < 0.5 ? 1 : Math.max(0, 1 - (p - 0.5) / 0.35);
     vignetteEl.style.opacity = vigOp.toFixed(3);
