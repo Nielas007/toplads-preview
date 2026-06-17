@@ -471,6 +471,36 @@ ScrollTrigger.create({
         if (Math.abs(mobileVideo.currentTime - t) > 0.02) {
           try { mobileVideo.currentTime = t; } catch (e) {}
         }
+
+        /* Mobile-only "logo reveal" choreography:
+           The end-frame composition (illustrated golfer + TOP LADS logo) is
+           1920x1080 landscape. On a portrait phone, object-fit:cover crops the
+           sides off so the logo never appears. Late in the scrub we:
+             1) Fade .video-wrap background to white (matches the frame's bg)
+             2) Smoothly scale the video down so its full 16:9 frame fits in
+                the centre of the viewport
+             3) Switch object-fit to contain at the moment the surroundings
+                are already white — the swap is invisible. */
+        const wrap = mobileVideo.parentNode;
+        if (p > 0.62) {
+          const k = Math.min(1, (p - 0.62) / 0.18);   // 0 → 1 across 0.62-0.80
+          const v = Math.round(8 + k * 247);          // dark → white bg fade
+          wrap.style.background = `rgb(${v},${v},${v})`;
+          if (p > 0.74) {
+            mobileVideo.style.objectFit = "contain";
+            const k2 = Math.min(1, (p - 0.74) / 0.20);
+            const scale = 1 - k2 * 0.10;              // slight scale-down for breathing room
+            mobileVideo.style.transform = `scale(${scale.toFixed(3)})`;
+            mobileVideo.style.transformOrigin = "center center";
+          } else {
+            mobileVideo.style.objectFit = "cover";
+            mobileVideo.style.transform = "none";
+          }
+        } else {
+          wrap.style.background = "transparent";
+          mobileVideo.style.objectFit = "cover";
+          mobileVideo.style.transform = "none";
+        }
       }
     } else {
       // Desktop: scroll-driven frame index for the canvas render loop

@@ -550,6 +550,8 @@ body.is-revealing .corner-cta { box-shadow: 0 10px 28px rgba(0,0,0,0.15); }
 /* When we're near the end of the scrub, the page underneath shifts
    white so the logo reveal extends beyond the video frame. */
 body.is-revealing { background: #ffffff; }
+body.is-revealing .video-stage,
+body.is-revealing .video-wrap { background: #ffffff; }
 
 /* ============================================================
    SCRUB TEXT — choreographed word beats over the video scrub
