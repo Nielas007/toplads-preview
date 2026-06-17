@@ -552,15 +552,16 @@ gsap.to(".hero-scroll-cue", {
 });
 
 /* After the scrub completes, fade the video stage out so the dark
-   content sections take over cleanly, and restore the dark body bg. */
+   content sections take over cleanly, and restore the dark body bg.
+   The fade is delayed so the user can actually appreciate the logo
+   reveal moment before content starts pushing it out. */
 ScrollTrigger.create({
   trigger: "#events",
-  start: "top 95%",
-  end: "top 40%",
+  start: "top 40%",      // events section already ~60% scrolled in
+  end:   "top -20%",     // events section past the top by 20%
   scrub: 0.4,
   onUpdate: (self) => {
     stage.style.opacity = (1 - self.progress).toFixed(3);
-    // Once we're more than halfway out of the reveal, switch body back to dark
     if (self.progress > 0.3) document.body.classList.remove("is-revealing");
   },
 });
