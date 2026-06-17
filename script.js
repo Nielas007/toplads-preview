@@ -19,6 +19,7 @@ if (typeof Lenis !== "undefined") {
     lenis.on("scroll", ScrollTrigger.update);
     gsap.ticker.add((time) => lenis.raf(time * 1000));
     gsap.ticker.lagSmoothing(0);
+    window.lenis = lenis;
   } catch (e) {
     console.warn("Lenis init failed", e);
   }
@@ -430,6 +431,10 @@ function setupMobileScrub() {
 
   firstFrameReady = true;
   allFramesReady  = true;
+
+  // Force ScrollTrigger to recompute all positions now that we've changed
+  // the scrub section height and DOM structure
+  setTimeout(() => ScrollTrigger.refresh(), 50);
 }
 
 if (IS_MOBILE) {
@@ -552,14 +557,22 @@ gsap.to(".hero-scroll-cue", {
 });
 
 /* After the scrub completes, fade the video stage out so the dark
-   content sections take over cleanly, and restore the dark body bg.
-   The fade is delayed so the user can actually appreciate the logo
-   reveal moment before content starts pushing it out. */
+   content sections take over cleanly. We use pixel-function start/end
+   so this is independent of percentage-based parsing quirks with Lenis.
+   The fade waits until the scrollStage has fully ended + a small buffer
+   so the user gets a proper moment with the logo reveal. */
 ScrollTrigger.create({
   trigger: "#events",
-  start: "top 40%",      // events section already ~60% scrolled in
-  end:   "top -20%",     // events section past the top by 20%
+  start: () => {
+    const ss = document.getElementById("scrollStage");
+    return ss.offsetTop + ss.offsetHeight - window.innerHeight * 0.1;
+  },
+  end: () => {
+    const ss = document.getElementById("scrollStage");
+    return ss.offsetTop + ss.offsetHeight + window.innerHeight * 0.4;
+  },
   scrub: 0.4,
+  invalidateOnRefresh: true,
   onUpdate: (self) => {
     stage.style.opacity = (1 - self.progress).toFixed(3);
     if (self.progress > 0.3) document.body.classList.remove("is-revealing");
