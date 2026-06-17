@@ -383,38 +383,57 @@ async function preloadAllFrames() {
   await Promise.all(workers);
 }
 
-/* ----------------- MOBILE PATH ----------------- */
-function setupMobileVideo() {
-  // Replace the canvas with a looping <video> so iOS Safari doesn't OOM
+/* ----------------- MOBILE PATH -----------------
+   Use the all-keyframes mp4 with scroll-driven currentTime so mobile
+   users get the same cinematic scrub as desktop, without loading
+   361 ImageBitmaps that crash iOS Safari. */
+let mobileVideo = null;
+let mobileVideoReady = false;
+
+function setupMobileScrub() {
   const wrap = document.querySelector(".video-wrap");
   if (canvas && canvas.parentNode === wrap) wrap.removeChild(canvas);
 
   const v = document.createElement("video");
   v.src = "Toplads_BG_scrub.mp4";
   v.muted = true;
-  v.loop = true;
-  v.autoplay = true;
   v.playsInline = true;
+  v.preload = "auto";
   v.setAttribute("playsinline", "true");
   v.setAttribute("webkit-playsinline", "true");
-  v.style.cssText = "width:100%;height:100%;object-fit:cover;display:block;";
+  v.setAttribute("muted", "true");
+  v.style.cssText =
+    "width:100%;height:100%;object-fit:cover;display:block;filter:brightness(.9) saturate(1.05);";
   wrap.appendChild(v);
-  v.play().catch(() => {});
+  mobileVideo = v;
 
-  // Skip the preloader immediately
+  // Wake the pipeline: iOS Safari won't render currentTime updates until
+  // the video has played at least one frame.
+  const wake = () => {
+    v.play().then(() => {
+      v.pause();
+      try { v.currentTime = 0; } catch (e) {}
+      mobileVideoReady = true;
+      ScrollTrigger.refresh();
+    }).catch(() => { mobileVideoReady = true; });
+  };
+  if (v.readyState >= 2) wake();
+  else v.addEventListener("loadedmetadata", wake, { once: true });
+
+  // Drop the preloader instantly
   const pl = document.getElementById("preloader");
   if (pl) pl.classList.add("gone");
 
-  // Shorten the scroll stage so mobile users aren't trapped in an empty 400vh
+  // Mobile scrub stage — 300vh so the 15s video has comfortable scroll runway
   const scrub = document.getElementById("scrub");
-  if (scrub) scrub.style.height = "150vh";
+  if (scrub) scrub.style.height = "300vh";
 
   firstFrameReady = true;
   allFramesReady  = true;
 }
 
 if (IS_MOBILE) {
-  setupMobileVideo();
+  setupMobileScrub();
 } else {
   preloadAllFrames();
 }
@@ -445,16 +464,24 @@ ScrollTrigger.create({
   onUpdate: (self) => {
     const p = self.progress;
 
-    // Target frame is set every scroll update; render loop catches up
-    targetIdx = p * (TOTAL_FRAMES - 1);
-
-    /* Color reveal arc — desktop canvas only */
-    if (!IS_MOBILE && canvasEl) {
-      let brightness;
-      if (p < 0.55)      brightness = 0.85;
-      else if (p < 0.95) brightness = 0.85 + ((p - 0.55) / 0.40) * 0.15;
-      else               brightness = 1.0;
-      canvasEl.style.filter = `brightness(${brightness.toFixed(3)}) saturate(${(1.05 + p * 0.05).toFixed(3)})`;
+    if (IS_MOBILE) {
+      // Mobile: drive video.currentTime directly with scroll
+      if (mobileVideo && mobileVideoReady && mobileVideo.duration) {
+        const t = p * (mobileVideo.duration - 0.04);
+        if (Math.abs(mobileVideo.currentTime - t) > 0.02) {
+          try { mobileVideo.currentTime = t; } catch (e) {}
+        }
+      }
+    } else {
+      // Desktop: scroll-driven frame index for the canvas render loop
+      targetIdx = p * (TOTAL_FRAMES - 1);
+      if (canvasEl) {
+        let brightness;
+        if (p < 0.55)      brightness = 0.85;
+        else if (p < 0.95) brightness = 0.85 + ((p - 0.55) / 0.40) * 0.15;
+        else               brightness = 1.0;
+        canvasEl.style.filter = `brightness(${brightness.toFixed(3)}) saturate(${(1.05 + p * 0.05).toFixed(3)})`;
+      }
     }
 
     const vigOp = p < 0.5 ? 1 : Math.max(0, 1 - (p - 0.5) / 0.35);
@@ -463,12 +490,11 @@ ScrollTrigger.create({
 
     document.body.classList.toggle("is-revealing", p > 0.82);
 
-    // Expose progress to other modules (Three.js 3D scrub text)
     window.APP_SCROLL_P = p;
     window.APP_SCROLL_VEL = spinVelocity;
 
-    // CSS-based scrub text (fallback while 3D loads)
-    updateScrubText(p);
+    // Scrub text on desktop only — hidden on mobile via CSS
+    if (!IS_MOBILE) updateScrubText(p);
   },
 });
 
